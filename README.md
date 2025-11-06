@@ -1,17 +1,15 @@
-# RL for Multi‑Group Fairness
+# RL for Multi-Group Fairness
 
-This repository packages the notebook `RL_FAIR1.ipynb` into a reproducible project for **reinforcement learning (RL) to optimize multi‑group fairness**.
-
-**中文**：本仓库将你的 `.ipynb` 整理为标准 GitHub 结构，支持基于强化学习优化“多组公平性”。
+This repository packages the notebook `RL_FAIR1.ipynb` into a reproducible project for **reinforcement learning (RL) to optimize multi-group fairness**.
 
 ## Features
 - Modular code in `src/rl_fair/`:
-  - `data.py`: data loading / schema checks
-  - `metrics.py`: DP/EO/TPR‑FPR 等跨组公平指标与聚合
-  - `env.py`, `rewards.py`: RL 环境与含公平惩罚的奖励
-  - `train.py`, `eval.py`: 训练与评估 CLI
+  - `data.py`: data loading and schema checks
+  - `metrics.py`: cross-group fairness metrics (e.g., Demographic Parity, Equalized Odds, TPR/FPR) and aggregation
+  - `env.py`, `rewards.py`: RL environment and rewards with fairness penalties
+  - `train.py`, `eval.py`: training and evaluation CLIs
 - Original notebook preserved in `notebooks/`
-- Example config in `configs/demo.yaml`
+- Example configuration in `configs/demo.yaml`
 
 ## Quickstart
 ```bash
@@ -25,7 +23,8 @@ python -m rl_fair.train --episodes 500 --lam 1.0 --outdir runs/demo
 # Evaluate fairness on predictions (CSV columns: y_true,y_pred,group)
 python -m rl_fair.eval --pred examples/dummy_preds.csv
 ```
-Python: 3.11.8
+
+**Python:** 3.11.8
 
 ## Data
 Place raw data in `data/raw/`, then generate processed files in `data/processed/` with columns:
@@ -35,9 +34,9 @@ feature_*, label, group
 
 ## Citation
 If you use this template:
-- Title: RL for Multi‑Group Fairness
-- Year: 2025
-- Type: GitHub template
+- **Title:** RL for Multi-Group Fairness  
+- **Year:** 2025  
+- **Type:** GitHub template
 
 ## License
 MIT
