@@ -1,0 +1,45 @@
+{
+  "intersection_encoding": "g_frl*4 + g_race*2 + g_hisp",
+  "subgroups": {
+    "0": {
+      "frl": 0,
+      "race": 0,
+      "hisp": 0
+    },
+    "1": {
+      "frl": 0,
+      "race": 0,
+      "hisp": 1
+    },
+    "2": {
+      "frl": 0,
+      "race": 1,
+      "hisp": 0
+    },
+    "3": {
+      "frl": 0,
+      "race": 1,
+      "hisp": 1
+    },
+    "4": {
+      "frl": 1,
+      "race": 0,
+      "hisp": 0
+    },
+    "5": {
+      "frl": 1,
+      "race": 0,
+      "hisp": 1
+    },
+    "6": {
+      "frl": 1,
+      "race": 1,
+      "hisp": 0
+    },
+    "7": {
+      "frl": 1,
+      "race": 1,
+      "hisp": 1
+    }
+  }
+}

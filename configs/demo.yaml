@@ -1,3 +1,37 @@
-episodes: 500
-lam: 1.0
-outdir: runs/demo
+# Demo configuration
+seed: 42
+dataset:
+  csv: data/demo/demo.csv
+  label: label
+  features:
+    - f0
+    - f1
+    - f2
+    - f3
+  groups:
+    - g_frl
+    - g_race
+    - g_hisp
+    - g_intersection  # precomputed 0..7 subgroup id for convenience
+model:
+  type: sklearn.neighbors.KNeighborsClassifier
+  params:
+    n_neighbors: 5
+trainer:
+  test_size: 0.2
+  stratify: true
+  metrics:
+    - accuracy
+    - f1_macro
+fairness:
+  metric: bpsn_auc
+  dispersion: [range, std, var]
+rl:
+  episodes: 10
+  lr: 0.05
+  weight_clip: [0.1, 10.0]
+  reward:
+    accuracy_weight: 0.5   # combine accuracy and fairness (lower bias => higher reward)
+    fairness_target: maximize_bpsn  # maximize subgroup BPSN-AUC and minimize dispersion
+output:
+  dir: runs/rl_demo
