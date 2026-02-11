@@ -1,64 +1,148 @@
-# RL for Multi-Group Fairness (Pluggable)
+# RL Fair Toolkit (可插拔 RL 公平性重加权工具)
 
-A production-ready, **pluggable** framework to optimize **multi-group fairness** with **reinforcement learning (RL)**
-as an adaptive, data-centric pre-processing step. Includes a synthetic demo dataset, CLI utilities, and a simple
-policy-gradient agent that learns sample weights to jointly improve **multi-group (intersectional) BPSN-AUC equity**
-and **predictive accuracy**.
+这个仓库提供一个**可插拔的 Reinforcement Learning (RL) 工具**，用于在**不泄露任何原始数据/字段信息**的前提下，对训练数据做**组级别（group-level）重采样 / 重加权**，从而在 **最大化公平性** 的同时尽量 **最小化准确率/性能损失**。
 
-> This open-source implementation is organized and generalized from an academic study on multi-group fairness with RL. See the manuscript for broader context and discussion. 
+> ✅ 本仓库 **不包含任何数据集**  
+> ✅ 不硬编码任何 “敏感属性字段名”（例如 race、gender 等）  
+> ✅ 你只需要在本地运行时提供列映射（features/label/protected cols），即可复用同一套 RL 逻辑
 
-## Highlights
+---
 
-- **Interfaces-first** design: swap data sources, metrics, rewards, and models via Python entry points or config.
-- **Multi-group metrics**: BPSN-AUC per subgroup, dispersion (range/std/var), and composite fairness score.
-- **RL pre-processing**: light-weight policy-gradient agent learns per-slice weights; **no inference-time overhead**.
-- **Model-agnostic**: use any scikit-learn compatible classifier via config.
-- **Reproducible**: pinned requirements, unit tests, synthetic demo, and CI workflow.
-- **Privacy-aware**: sensitive features only used during training-time audits / reweighting; not required at inference.
+## 1) 这个工具做什么？
 
-## Quickstart
+给定一个表格数据集（CSV / DataFrame）：
+
+- **X**：特征列（feature_cols）
+- **y**：标签列（label_col）
+- **g**：受保护属性列（protected_cols；可多个，自动形成 intersectional groups）
+
+工具会让一个 RL Agent 在训练循环中反复尝试不同的 **group sampling weights**：
+
+- 每一步选择一个 action：对某个 group 的权重做 `+delta` 或 `-delta`
+- 通过这些权重对训练集重采样（保持总样本量不变）
+- 训练一个基础分类器（默认 Logistic Regression，可替换）
+- 在验证集上评估：
+  - performance（默认 AUC，也可用 accuracy）
+  - disparity（默认 Demographic Parity diff，也可用 Equal Opportunity diff 或 ABROCA）
+- reward：把 “disparity 变小” 作为主要目标，同时惩罚 “性能低于 baseline”
+
+最终输出：**一组最优 group weights**，可用于你后续的正式训练/实验 pipeline。
+
+---
+
+## 2) 安装
 
 ```bash
-# 1) Create env and install
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+# 或者
 pip install -e .
-
-# 2) Run a complete demo (train baseline, run RL weighting, evaluate fairness)
-rlmgf data.validate --schema configs/schema_demo.json --csv data/demo/demo.csv
-rlmgf train --config configs/demo.yaml --out runs/baseline
-rlmgf rl-train --config configs/demo.yaml --episodes 10 --out runs/rl_demo
-rlmgf eval --pred runs/rl_demo/preds.csv --groups data/demo/groups.json --report runs/rl_demo/report.json
 ```
 
-## Project layout
+---
 
-```
-rl-mg-fairness/
-├─ src/rlmgf/                # Library (interfaces + reference implementations)
-├─ bin/                      # CLI entry wrapper
-├─ configs/                  # YAML/JSON configs and schemas
-├─ data/demo/                # Synthetic toy dataset + group definition
-├─ notebooks/                # (optional) exploration space
-├─ tests/                    # Unit tests
-└─ docs/                     # Minimal docs
-```
-
-## Citation
-
-If you use this repository, please cite the associated study motivating the design and metrics.
-
-
-## Git & CI Setup
-
-Initialize the repository and push to GitHub:
+## 3) 最快上手：合成数据 Demo
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: RL multi-group fairness (pluggable)"
-git branch -M main
-git remote add origin https://github.com/<your-username>/rl-mg-fairness.git
-git push -u origin main
+python examples/quickstart_synthetic.py
 ```
 
-GitHub Actions will run tests on each push to `main` via `.github/workflows/python-ci.yml`.
+这个 demo 使用 `p0/p1` 作为受保护列（纯占位符），不会涉及任何现实世界敏感属性。
+
+---
+
+## 4) 用你自己的 CSV 跑（本地，不要提交数据）
+
+### 方式 A：CLI
+
+```bash
+rl-fair \
+  --csv your.csv \
+  --features f1,f2,f3 \
+  --label y \
+  --protected p0,p1 \
+  --perf auc \
+  --disparity eo \
+  --steps 200 \
+  --out best_weights.json
+```
+
+输出 `best_weights.json`（只包含数字权重与指标，不包含字段名/数据）。
+
+### 方式 B：Python API
+
+```python
+import pandas as pd
+from rl_fair import DatasetSpec, TrainConfig, RewardConfig, train_reweighter
+
+df = pd.read_csv("your.csv")
+
+spec = DatasetSpec(
+    feature_cols=["f1","f2","f3"],
+    label_col="y",
+    protected_cols=["p0","p1"],  # 可多个，自动 intersectional
+)
+
+train_cfg = TrainConfig(num_steps=200, delta=0.05, model_name="logreg", verbose=True)
+reward_cfg = RewardConfig(lambda_fair=2.0, lambda_acc=1.0, lambda_entropy=0.01)
+
+res = train_reweighter(df, spec, train_cfg=train_cfg, reward_cfg=reward_cfg,
+                       perf_metric="auc", disparity_metric="eo")
+
+print(res.best_weights, res.best_perf, res.best_disparity)
+```
+
+---
+
+## 5) 指标说明（可选）
+
+- `perf_metric`
+  - `auc`：ROC-AUC（binary / multiclass ovo）
+  - `acc`：Accuracy
+
+- `disparity_metric`
+  - `dp`：Demographic Parity diff（各组预测为正的比例差）
+  - `eo`：Equal Opportunity diff（各组 TPR 差）
+  - `abroca`：ABROCA-style disparity（仅适用于 **二元 protected attribute**；如果你的 groups>2 会自动回退到 EO）
+
+---
+
+## 6) 隐私与“不要泄露字段名”的建议
+
+本工具本身不会打印或 hard-code 任何字段名/敏感属性名，但你**运行时**仍需在 `DatasetSpec` 里提供列名。若列名本身敏感：
+
+- ✅ 推荐：把真实列名放在 `configs/local_*.yaml`，并在 `.gitignore` 里忽略
+- ✅ 推荐：对外分享时用 `p0/p1/...` 这样的占位符示例
+- ❌ 不要：把真实数据或包含敏感列名的配置直接提交到 GitHub
+
+---
+
+## 7) 目录结构
+
+```
+rl_fair_toolkit/
+  rl_fair/                 # 核心库
+    metrics/               # fairness/performance metrics
+    models/                # sklearn model wrapper
+    rl/                    # env + DQN agent + training loop
+  examples/                # demo 与脚本
+  tests/                   # 最小单测
+```
+
+---
+
+## 8) 免责声明
+
+- 这是一个**研究工具**，并不保证在所有数据/任务上都能改善公平性或保持性能。
+- 公平性指标与“公平”的定义依赖场景与政策/伦理语境；请结合你的研究问题选择合适指标与阈值。
+
+---
+
+## 9) 你可以怎么扩展？
+
+- 把 `ReweightingEnv._evaluate()` 里的模型从 sklearn 换成你自己的（例如 PyTorch 模型），并做 warm-start 加速
+- 增加更多 fairness metrics（例如 equalized odds, calibration 等）
+- 把 action 变成连续动作（用 PPO / SAC），替换 `DQNAgent`
+
+---
+
+If you want, you can publish this as a standalone pip package after adding CI (pytest) and basic documentation.

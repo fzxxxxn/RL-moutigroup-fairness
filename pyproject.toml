@@ -3,35 +3,26 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rl-mg-fairness"
+name = "rl-fair-toolkit"
 version = "0.1.0"
-description = "Pluggable RL-based pre-processing for multi-group fairness"
+description = "Pluggable RL-based dataset reweighting for fairness/accuracy trade-offs (no data included)."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
-authors = [{name="RL Multi-Group Fairness Contributors"}]
+license = {text = "MIT"}
+authors = [{name = "Community"}]
 dependencies = [
-  "numpy>=1.24,<3",
-  "pandas>=2.0,<3",
-  "scikit-learn>=1.3,<2",
-  "pyyaml>=6.0",
-  "tqdm>=4.64",
-  "rich>=13",
-  "typer>=0.9",
-  "pydantic>=2",
-  "matplotlib>=3.7",
-  "scipy>=1.10",
-  "xgboost>=2.0"
+  "numpy>=1.23",
+  "pandas>=2.0",
+  "scikit-learn>=1.3",
+  "torch>=2.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.4.0"]
+
 [project.scripts]
-rlmgf = "rlmgf.cli:app"
+rl-fair = "rl_fair.cli:main"
 
-[tool.black]
-line-length = 100
-
-[tool.isort]
-profile = "black"
-
-[tool.ruff]
-line-length = 100
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rl_fair*"]

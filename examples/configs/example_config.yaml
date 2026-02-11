@@ -1,0 +1,21 @@
+# Example config (SAFE PLACEHOLDERS ONLY)
+# Do NOT commit configs that reveal real-world protected attribute names if that is sensitive.
+
+dataset:
+  csv_path: "path/to/your.csv"
+  feature_cols: ["x1", "x2", "x3"]
+  label_col: "y"
+  protected_cols: ["p0", "p1"]
+
+training:
+  num_steps: 200
+  delta: 0.05
+  model_name: "logreg"
+  model_kwargs: {}
+reward:
+  lambda_fair: 2.0
+  lambda_acc: 1.0
+  lambda_entropy: 0.01
+metrics:
+  perf_metric: "auc"
+  disparity_metric: "eo"
