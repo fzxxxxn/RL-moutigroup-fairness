@@ -50,50 +50,8 @@ python examples/quickstart_synthetic.py
 
 ---
 
-## 4) 用你自己的 CSV 跑（本地，不要提交数据）
 
-### 方式 A：CLI
-
-```bash
-rl-fair \
-  --csv your.csv \
-  --features f1,f2,f3 \
-  --label y \
-  --protected p0,p1 \
-  --perf auc \
-  --disparity eo \
-  --steps 200 \
-  --out best_weights.json
-```
-
-输出 `best_weights.json`（只包含数字权重与指标，不包含字段名/数据）。
-
-### 方式 B：Python API
-
-```python
-import pandas as pd
-from rl_fair import DatasetSpec, TrainConfig, RewardConfig, train_reweighter
-
-df = pd.read_csv("your.csv")
-
-spec = DatasetSpec(
-    feature_cols=["f1","f2","f3"],
-    label_col="y",
-    protected_cols=["p0","p1"],  # 可多个，自动 intersectional
-)
-
-train_cfg = TrainConfig(num_steps=200, delta=0.05, model_name="logreg", verbose=True)
-reward_cfg = RewardConfig(lambda_fair=2.0, lambda_acc=1.0, lambda_entropy=0.01)
-
-res = train_reweighter(df, spec, train_cfg=train_cfg, reward_cfg=reward_cfg,
-                       perf_metric="auc", disparity_metric="eo")
-
-print(res.best_weights, res.best_perf, res.best_disparity)
-```
-
----
-
-## 5) 指标说明（可选）
+## 4) 指标说明
 
 - `perf_metric`
   - `auc`：ROC-AUC（binary / multiclass ovo）
@@ -106,7 +64,7 @@ print(res.best_weights, res.best_perf, res.best_disparity)
 
 ---
 
-## 6) 隐私与“不要泄露字段名”的建议
+## 5) 隐私与“不要泄露字段名”的建议
 
 本工具本身不会打印或 hard-code 任何字段名/敏感属性名，但你**运行时**仍需在 `DatasetSpec` 里提供列名。若列名本身敏感：
 
@@ -116,7 +74,7 @@ print(res.best_weights, res.best_perf, res.best_disparity)
 
 ---
 
-## 7) 目录结构
+## 6) 目录结构
 
 ```
 rl_fair_toolkit/
@@ -130,19 +88,16 @@ rl_fair_toolkit/
 
 ---
 
-## 8) 免责声明
+## 7) 免责声明
 
 - 这是一个**研究工具**，并不保证在所有数据/任务上都能改善公平性或保持性能。
 - 公平性指标与“公平”的定义依赖场景与政策/伦理语境；请结合你的研究问题选择合适指标与阈值。
 
 ---
 
-## 9) 你可以怎么扩展？
 
-- 把 `ReweightingEnv._evaluate()` 里的模型从 sklearn 换成你自己的（例如 PyTorch 模型），并做 warm-start 加速
-- 增加更多 fairness metrics（例如 equalized odds, calibration 等）
-- 把 action 变成连续动作（用 PPO / SAC），替换 `DQNAgent`
 
 ---
 
-If you want, you can publish this as a standalone pip package after adding CI (pytest) and basic documentation.
+If you want, you can publish this as a standalone pip package after adding CI (pytest) and basic documentation. 
+If you use this toolkit in your research or applications, please cite: Zhang, F., Xing, W., Li, C., & Jiang, Y. (2026). Fair AI in educational predictions: A multi-group fairness approach using reinforcement learning. The Internet and Higher Education, 101074.
